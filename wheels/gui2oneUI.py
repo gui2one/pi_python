@@ -8,20 +8,6 @@ class Event(object):
     def __init__(self):
         pass
 
-class Observable(object):
-    def __init__(self):
-        self.callbacks = []
-    def subscribe(self, callback):
-        self.callbacks.append(callback)
-        self.fire()
-    def fire(self, **attrs):
-        e = Event()
-        #print "event -->", dir(e)
-        e.source = self
-        for k, v in attrs.iteritems():
-            setattr(e, k, v)
-        for fn in self.callbacks:
-            fn(e)
 
 class gui2oneUI(object):
     def __init__(self, screen):
@@ -99,14 +85,15 @@ class gui2oneUI(object):
                         else :
                             item.isDragged = False
                             self.draggedItem = None
-                                                        
-            if type(item).__name__ == "Button" and event.type == pygame.MOUSEBUTTONDOWN and item.pressed(pygame.mouse.get_pos()) :
-                item.callback()
-                pass
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                #print "btn down :",type(item).__name__, item.text
+                if event.type == pygame.MOUSEBUTTONDOWN and type(item).__name__ == "Button"  and item.pressed(pygame.mouse.get_pos()) :
+                    item.fire()
+                    
                     
                 
 class uiItem(object):
-    def __init__(self,screen,x,y,width, height,name,defaultValue,draggable,dragDir):
+    def __init__(self,screen,x,y,width, height,name,defaultValue,draggable,dragDir,fontSize):
         #self.myProp = prop
         self.name = name
         self.screen = screen
@@ -119,12 +106,33 @@ class uiItem(object):
         self.dragLimits = self.rect
         self.parentItem = None
 
-        self.font = pygame.font.Font(pygame.font.get_default_font(),18)
+        self.fontSize = fontSize
+        
+        self.font = pygame.font.Font(pygame.font.get_default_font(),self.fontSize)
         self.fontScale = 1.0
         
         self.defaultValue = defaultValue
         self.value = self.defaultValue
         self.callbackString = ""
+
+        self.callbacks = []
+        
+    def subscribe(self, callback):
+        self.callbacks.append(callback)
+        
+    def setFontSize(self, fSize):
+        self.fontSize = fSize
+        #self.__init__(self.screen, self.position[0],self.position[1], self.size[0], self.size[1])
+        
+    def fire(self, **attrs):
+        e = Event()
+        #print "event -->", dir(e)
+        #e.source = self
+        for k, v in attrs.iteritems():
+            setattr(e, k, v)
+        for fn in self.callbacks:
+            #print "doing something"
+            fn()
 
     def setSize(self, width , height):
         self.size = [width,height]
@@ -137,21 +145,16 @@ class uiItem(object):
         
         self.value = val
         return val
-    def setCallback(self,func):
-        
-        self.callbackString = func
 
-    def callback(self):
-
-        exec self.callbackString
 
 class StaticText(uiItem):
-    def __init__(self, screen, x,y,width, height,name="item_name",defaultValue=0.0 , draggable=False, dragDir="horizontal"):
-        uiItem.__init__(self,screen,x,y,width, height,name,defaultValue,draggable=False, dragDir="horizontal")
+    def __init__(self, screen, x,y,width, height,name="item_name",defaultValue=0.0 , draggable=False, dragDir="horizontal",fontSize=12):
+        uiItem.__init__(self,screen,x,y,width, height,name,defaultValue,draggable=False, dragDir="horizontal", fontSize=12)
         self.text = 'wxcwxc'
+        self.fontSize = fontSize
         
     def draw(self):
-        
+        self.font = pygame.font.Font(pygame.font.get_default_font(),self.fontSize)
         textSurface = self.font.render(self.text, True, (255,255,255))
         #textSurface.transform.move(20,20)
         textPosX = self.rect.left
@@ -159,15 +162,16 @@ class StaticText(uiItem):
         self.screen.blit(textSurface,(textPosX,textPosY))  
 
 class Line(uiItem):
-    def __init__(self, screen, x,y,width, height,name="item_name",defaultValue=0.0 , draggable=False, dragDir="horizontal"):
-        uiItem.__init__(self,screen,x,y,width, height,name,defaultValue,draggable=False, dragDir="horizontal")
+    def __init__(self, screen, x,y,width, height,name="item_name",defaultValue=0.0 , draggable=False, dragDir="horizontal",fontSize=12):
+        uiItem.__init__(self,screen,x,y,width, height,name,defaultValue,draggable=False, dragDir="horizontal",fontSize=12)
         self.color = (55,55,55)
+        self.fontSize = fontSize
         
 
     def draw(self):
         self.rect = pygame.Rect(self.position[0],self.position[1],self.size[0],self.size[1])
         pygame.draw.rect(self.screen, self.color, self.rect)
-        
+        self.font = pygame.font.Font(pygame.font.get_default_font(),self.fontSize)
         textSurface = self.font.render(self.name, True, (255,255,255)) 
         textPosX = self.rect.left
         textPosY = self.rect.top-30
@@ -175,7 +179,7 @@ class Line(uiItem):
         self.screen.blit(textSurface,(textPosX,textPosY))        
         
 class Slider(uiItem):
-    def __init__(   self, screen,x,y,width, height,name="item_name",defaultValue=0.0,draggable=False,dragDir="horizontal"):
+    def __init__(   self, screen,x,y,width, height,name="item_name",defaultValue=0.0,draggable=False,dragDir="horizontal",fontSize=12):
         
         uiItem.__init__(self,screen,
                         x,y,
@@ -183,7 +187,8 @@ class Slider(uiItem):
                         name,
                         defaultValue, 
                         draggable=False, 
-                        dragDir="horizontal")
+                        dragDir="horizontal",
+                        fontSize=12)
         self.color = pygame.Color("#555555")
         
 
@@ -191,7 +196,7 @@ class Slider(uiItem):
     def draw(self):
         
         textSurface = self.font.render(str(roundValue(self.value)), True, (255,255,255))
-
+        self.font = pygame.font.Font(pygame.font.get_default_font(),self.fontSize)
         textPosX = self.rect.right+15
         textPosY = self.rect.top-7
         self.screen.blit(textSurface,(textPosX,textPosY))   
@@ -200,8 +205,8 @@ class Slider(uiItem):
         
 class Button(uiItem):
     
-    def __init__(self, screen, x,y,width, height,name="item_name", defaultValue=0.0,draggable=False, dragDir="horizontal"):
-        uiItem.__init__(self,screen,x,y,width, height, name, defaultValue,draggable=False, dragDir="horizontal")
+    def __init__(self, screen, x,y,width, height,name="item_name", defaultValue=0.0,draggable=False, dragDir="horizontal",fontSize=12):
+        uiItem.__init__(self,screen,x,y,width, height, name, defaultValue,draggable=False, dragDir="horizontal",fontSize=12)
         #self.screen = screen
         self.color = (255,20,20)        
         self.text = self.name
@@ -211,7 +216,7 @@ class Button(uiItem):
         self.rect = pygame.Rect(self.position[0],self.position[1],self.size[0],self.size[1])
         pygame.draw.rect(self.screen, self.color,self.rect)
         
-        
+        self.font = pygame.font.Font(pygame.font.get_default_font(),self.fontSize)
         textSurface = self.font.render(self.text, True, (255,255,255))        
         textPosX = self.rect.centerx - (textSurface.get_width()/2.0)
         textPosY = self.rect.centery - (textSurface.get_height()/2.0)
@@ -219,10 +224,10 @@ class Button(uiItem):
         self.screen.blit(textSurface,(textPosX,textPosY))
 
     def pressed(self,mouse):
-        if mouse[0] > self.rect.topleft[0]:
-            if mouse[1] > self.rect.topleft[1]:
-                if mouse[0] < self.rect.bottomright[0]:
-                    if mouse[1] < self.rect.bottomright[1]:
+        if mouse[0] > self.position[0]:
+            if mouse[1] > self.position[1]:
+                if mouse[0] < self.position[0] + self.size[0]:
+                    if mouse[1] < self.position[1] + self.size[1]:
 
                         return True
                         

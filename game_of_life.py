@@ -10,16 +10,18 @@ from gui2oneUI import *
 
 
 class GOL_grid():
-    def __init__(self,size=[20,20]):
+    def __init__(self, position = [20,20], size=[30,30]):
         self.size = size
+        self.position = position
         self.cells = []
         self.cellSize = 8
         
         self.font = pygame.font.Font(pygame.font.get_default_font(),10)
 
         self.showCellNums = False
-
-
+        self.iterations = 0
+        self.isEvolving = True
+    
     def build(self):
         counter = 0
         for j in range(0,self.size[1]):
@@ -35,7 +37,7 @@ class GOL_grid():
 
                 counter += 1        
 
-        #self.draw()
+        print random.random()
 
     def getNumNeighbours(self,cell):
         x = cell.coords[0]
@@ -83,24 +85,27 @@ class GOL_grid():
             self.cells[i].numBuddies = numBuddies
             
     def update(self):
-        for i in range(0,len(self.cells)):
 
-            cell = self.cells[i]
+        if self.isEvolving:
+            self.checkBuddies()
+            for i in range(0,len(self.cells)):
 
-            if cell.state == 1:
-                if cell.numBuddies < 2 or cell.numBuddies > 3:
-                    cell.state = 0
-                elif cell.numBuddies == 2 or cell.numBuddies == 3:
-                    pass
-            else:
-                if cell.numBuddies == 3:
-                    cell.state = 1        
+                cell = self.cells[i]
 
+                if cell.state == 1:
+                    if cell.numBuddies < 2 or cell.numBuddies > 3:
+                        cell.state = 0
+                    elif cell.numBuddies == 2 or cell.numBuddies == 3:
+                        pass
+                else:
+                    if cell.numBuddies == 3:
+                        cell.state = 1        
+            self.iterations += 1
     
     def draw(self):
         #print "draw!!!!"
-        self.checkBuddies()
-        self.update()
+        
+        
         for i in range(0,len(self.cells)):
             cell = self.cells[i]
        
@@ -108,7 +113,7 @@ class GOL_grid():
                 clr = (255,0,0)
             else:
                 clr = (20, 20,20)
-            pygame.draw.rect(screen, clr,pygame.Rect(cell.coords[0]*self.cellSize,cell.coords[1]*self.cellSize,self.cellSize-2,self.cellSize-2))
+            pygame.draw.rect(screen, clr,pygame.Rect((cell.coords[0]*self.cellSize)+ self.position[0],(cell.coords[1]*self.cellSize)+ self.position[1],self.cellSize-2,self.cellSize-2))
 
             if self.showCellNums:
                 textSurface = self.font.render(str(i), True, (255,255,255))
@@ -142,76 +147,117 @@ pygame.init()
 screen = pygame.display.set_mode((700, 700))
 
 
-gridSize = 100
-grid = GOL_grid([gridSize,gridSize])
-grid.cellSize = 6
-grid.build()
 
-oldGridString = ''
-for cell in grid.cells: oldGridString += str(cell.state)
+
+isEvolving = True
+
+
 
 
 pygame.display.set_caption("Game Of Life")
 ui = gui2oneUI(screen)
 
-text1 = StaticText(screen,20,650,50,50)
-ui.addItem(text1)
+iterText = StaticText(screen,220,30,200,50)
+iterText.setFontSize(13)
+ui.addItem(iterText)
 
-resetBtn = Button(screen, 100,650,50,50, "Reset")
+recordText = StaticText(screen,220,60,200,50)
+recordText.setFontSize(13)
+ui.addItem(recordText)
+
+resetBtn = Button(screen, 10,10,60,30, "Reset")
+resetBtn.setFontSize(13)
+record = 0
+frameCounter = 0
+
+gridSize = 25
+gridPos = [50,50]  
+grid = GOL_grid(gridPos,[gridSize,gridSize])
+
+def buildGrid():
+
+    #global grid
+    grid.__init__(gridPos,[gridSize,gridSize])
+    grid.cellSize = 10
+    grid.build()      
+    oldGridString = ''
+    grid.isEvolving = True
+    global frameCounter
+    frameCounter = 0
 
 
+resetBtn.subscribe(buildGrid)
 
-def my_callback_func(event):
-    print dir(event.source)
-    print event.source.__reduce__()
-    pass
-    # do stuff
-
-def resetFunction():
-    #GOL_grid.__init__()
-    print "shitt !!"
-    pass
-    
-o = Observable()
-o.subscribe(my_callback_func)
-    
-resetBtn.setCallback(resetFunction.__code__)
-
+print resetBtn.callbacks
 ui.addItem(resetBtn)
+
+
+pauseBtn =  Button(screen, 80,10,60,30, "Pause")
+pauseBtn.setFontSize(13)
+
+def pauseGrid():
+    print pauseBtn
+    grid.isEvolving = not grid.isEvolving
+    
+pauseBtn.subscribe(pauseGrid)
+ui.addItem(pauseBtn)
+
+
+buildGrid()
+oldGridString = ''
+for cell in grid.cells: oldGridString += str(cell.state)
+
+##grid.position = [50,20]
+##grid.cellSize = 6
+##grid.build()
+
+
 clock = pygame.time.Clock()
 done = False
 
 
 
-frameCounter = 0
+
 grid.draw()
 while not done:
+    screen.fill((0, 0, 0))
+    ui.eventUpdate()
+    ui.draw()
     newString = ''
-    if frameCounter % 2 == 0 :
+    if grid.iterations % 6 == 0  and grid.iterations > 2 :
         for cell in grid.cells: newString += str(cell.state)
         if oldGridString == newString:
-            print "Done !!!!!!!"
-            done = True
-        else:
+            #print len(grid.cells)
+            grid.isEvolving = False
+            if grid.iterations > record : record = grid.iterations
+            buildGrid()
+            newString =  ''
+        else:            
             oldGridString = newString
-    screen.fill((0, 0, 0))
+
+    
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             print event
-            pygame.quit()
-
-##        if event.type == pygame.MOUSEBUTTONDOWN:
-##            grid.draw()
-##            #print counter
-            
+            pygame.quit()           
     
     
     
+    grid.update()   
+    
+        
+    iterText.text = "Iterations : " +str(grid.iterations)
+    recordText.text = "Record : "+ str(record)
     grid.draw()
-    text1.text = str(frameCounter)
-    ui.eventUpdate()
-    ui.draw()
+
+    #print frameCounter
     frameCounter += 1
+    
+
+    
+    clock.tick(30)
+
     pygame.display.flip()
-    clock.tick(60)
+    
+    
