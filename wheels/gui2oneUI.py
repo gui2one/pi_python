@@ -43,17 +43,16 @@ class gui2oneUI(object):
             item.draw()
             
     def eventUpdate(self):
+        mousePos = pygame.mouse.get_pos()
+        
+            
         for event in pygame.event.get():
 
-            if event.type == pygame.QUIT:
-                pygame.quit()
-##                print pygame.event.event_name(event.type)
             for item in self.items:
-
                 if item.draggable:
                      
                     if self.draggedItem == None or item == self.draggedItem:
-                        if event.type == pygame.MOUSEMOTION and event.buttons[0] == 1 and item.pressed(pygame.mouse.get_pos()) and not item.isDragged:
+                        if event.type == pygame.MOUSEMOTION and event.buttons[0] == 1 and item.detectMouseOver(mousePos) and not item.isDragged:
                             #print "Drag !!!", item.name, event.rel
                             item.isDragged = True
                             
@@ -85,11 +84,80 @@ class gui2oneUI(object):
                         else :
                             item.isDragged = False
                             self.draggedItem = None
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                #print "btn down :",type(item).__name__, item.text
-                if event.type == pygame.MOUSEBUTTONDOWN and type(item).__name__ == "Button"  and item.pressed(pygame.mouse.get_pos()) :
-                    item.fire()
+
+                else:            
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+        ##                print pygame.event.event_name(event.type)                
+                    elif event.type == pygame.MOUSEMOTION :
+                        if type(item).__name__ == 'Button' and item.detectMouseOver(mousePos):
+                            #print type(item).__name__, item.name
+                            item.color = (200,200,30)
+                            item.isMouseOver = True
+                        else:
+                            item.color = (150,150,150)
+                            item.isMouseOver = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        if type(item).__name__ == 'Button' and item.detectMouseOver(mousePos):
+                            item.color = (200,30,200)
+                            item.isClicked = True
+                            item.fire()
+                        else:
+                            item.color = (150,150,150)
+                            item.isClicked = False
                     
+                    
+
+##        for event in pygame.event.get():
+##        
+
+##            for item in self.items:
+##                #print item
+##                if item.draggable:
+##                     
+##                    if self.draggedItem == None or item == self.draggedItem:
+##                        if event.type == pygame.MOUSEMOTION and event.buttons[0] == 1 and item.detectMouseOver(mousePos) and not item.isDragged:
+##                            #print "Drag !!!", item.name, event.rel
+##                            item.isDragged = True
+##                            
+##                            if self.draggedItem == None :
+##                                self.draggedItem = item
+##                                #print self.draggedItem
+##                            
+##                        elif event.type == pygame.MOUSEMOTION and event.buttons[0] == 1  and item.isDragged:
+##                            if item == self.draggedItem:                    
+##                                if item.dragDir == "horizontal" :
+##
+##                                    item.position = [item.position[0]+event.rel[0], item.position[1]]
+##                                    if item.parentItem != None :
+##                                        item.parentItem.value = item.getValue()
+##                                        #print item.parentItem.value
+##                                    
+##                                    if item.position[0] < item.dragLimits.left:
+##                                        item.position[0] = item.dragLimits.left
+##                                    elif item.position[0] > item.dragLimits.right:
+##                                        item.position[0] = item.dragLimits.right
+##                                        
+##                                elif item.dragDir == "vertical":
+##                                    item.position = [item.position[0], item.position[1]+event.rel[1]]
+##
+##                                    if item.position[1] < item.dragLimits.top:
+##                                        item.position[1] = item.dragLimits.top
+##                                    elif item.position[1] > item.dragLimits.bottom:
+##                                        item.position[1] = item.dragLimits.bottom                                    
+##                        else :
+##                            item.isDragged = False
+##                            self.draggedItem = None
+##            if event.type == pygame.MOUSEBUTTONDOWN:
+##                #print "btn down :",type(item).__name__, item.text
+##                if event.type == pygame.MOUSEBUTTONDOWN and type(item).__name__ == "Button"  and item.detectMouseOver(mousePos) :
+##                    item.fire()
+##            if event.type == pygame.MOUSEMOTION and type(item).__name__ == "Button":
+##                isOver = item.detectMouseOver(mousePos)
+##                if isOver:
+##                    print item.name
+                
+                
                     
                 
 class uiItem(object):
@@ -113,8 +181,10 @@ class uiItem(object):
         
         self.defaultValue = defaultValue
         self.value = self.defaultValue
-        self.callbackString = ""
 
+
+        self.isMouseOver = False
+        self.isClicked = False
         self.callbacks = []
         
     def subscribe(self, callback):
@@ -126,12 +196,11 @@ class uiItem(object):
         
     def fire(self, **attrs):
         e = Event()
-        #print "event -->", dir(e)
+ 
         #e.source = self
         for k, v in attrs.iteritems():
             setattr(e, k, v)
         for fn in self.callbacks:
-            #print "doing something"
             fn()
 
     def setSize(self, width , height):
@@ -181,14 +250,7 @@ class Line(uiItem):
 class Slider(uiItem):
     def __init__(   self, screen,x,y,width, height,name="item_name",defaultValue=0.0,draggable=False,dragDir="horizontal",fontSize=12):
         
-        uiItem.__init__(self,screen,
-                        x,y,
-                        width, height, 
-                        name,
-                        defaultValue, 
-                        draggable=False, 
-                        dragDir="horizontal",
-                        fontSize=12)
+        uiItem.__init__(self,screen,x,y,width, height,name,defaultValue, draggable=False, dragDir="horizontal",fontSize=12)
         self.color = pygame.Color("#555555")
         
 
@@ -223,20 +285,9 @@ class Button(uiItem):
         
         self.screen.blit(textSurface,(textPosX,textPosY))
 
-    def pressed(self,mouse):
-        if mouse[0] > self.position[0]:
-            if mouse[1] > self.position[1]:
-                if mouse[0] < self.position[0] + self.size[0]:
-                    if mouse[1] < self.position[1] + self.size[1]:
-
-                        return True
-                        
-                    else:                        
-                        return False
-                else:                   
-                    return False
-            else:                
-                return False
+    def detectMouseOver(self,mouse):
+        if mouse[0] > self.position[0] and mouse[1] > self.position[1] and mouse[0] < self.position[0] + self.size[0] and mouse[1] < self.position[1] + self.size[1]:
+            return True
         else:            
             return False
 

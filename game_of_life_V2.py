@@ -8,10 +8,39 @@ import sys
 sys.path.insert(0,"./wheels")
 from gui2oneUI import *
 
-
-class GOL_grid(Thread):
-    def __init__(self, position = [20,20], size=[30,30]):
+class GOL_thread(Thread):
+    def __init__(self, grid, cellRange):
         Thread.__init__(self)
+        self.grid = grid
+        self.cellRange = cellRange
+
+    def run(self):
+##        print "THREAD -->",self.grid
+        if grid.isEvolving:
+            grid.checkBuddies()
+            for i in self.cellRange:
+
+                cell = grid.cells[i]
+                cell.temperature *= 0.3
+                if cell.state == 1:
+                    cell.temperature = 1.0
+                    if cell.numBuddies < 2 or cell.numBuddies > 3:
+                        cell.state = 0
+                    elif cell.numBuddies == 2 or cell.numBuddies == 3:
+                        pass
+                else:
+                    if cell.numBuddies == 3:
+                        cell.state = 1
+                        cell.temperature = 1.0
+
+                
+                
+            grid.iterations += 1        
+
+        
+class GOL_grid(object):
+    def __init__(self, position = [20,20], size=[30,30]):
+
         self.size = size
         self.position = position
         self.cells = []
@@ -111,31 +140,40 @@ class GOL_grid(Thread):
         for cell in self.cells : gridString += str(cell.state)
 
         return gridString
-            
+
+
+        
     def update(self):
 
-        if self.isEvolving:
-            self.checkBuddies()
-            for i in range(0,len(self.cells)):
+        thread1 = GOL_thread(self, range(0,(len(self.cells)/2)-1))
+        thread1.start()
+        thread1.join()
 
-                cell = self.cells[i]
-                cell.temperature *= 0.3
-                if cell.state == 1:
-                    cell.temperature = 1.0
-                    if cell.numBuddies < 2 or cell.numBuddies > 3:
-                        cell.state = 0
-                    elif cell.numBuddies == 2 or cell.numBuddies == 3:
-                        pass
-                else:
-                    if cell.numBuddies == 3:
-                        cell.state = 1
-                        cell.temperature = 1.0
-
-                
-                
-            self.iterations += 1
+        thread2 = GOL_thread(self, range((len(self.cells)/2),len(self.cells)))
+        thread2.start()
+        thread2.join()        
+##        if self.isEvolving:
+##            self.checkBuddies()
+##            for i in range(0,len(self.cells)):
+##
+##                cell = self.cells[i]
+##                cell.temperature *= 0.3
+##                if cell.state == 1:
+##                    cell.temperature = 1.0
+##                    if cell.numBuddies < 2 or cell.numBuddies > 3:
+##                        cell.state = 0
+##                    elif cell.numBuddies == 2 or cell.numBuddies == 3:
+##                        pass
+##                else:
+##                    if cell.numBuddies == 3:
+##                        cell.state = 1
+##                        cell.temperature = 1.0
+##
+##                
+##                
+##            self.iterations += 1
             
-    
+
     def draw(self):
         #print "draw!!!!"
         
