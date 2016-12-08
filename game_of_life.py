@@ -9,9 +9,9 @@ sys.path.insert(0,"./wheels")
 from gui2oneUI import *
 
 
-class GOL_grid(Thread):
+class GOL_grid(object):
     def __init__(self, position = [20,20], size=[30,30]):
-        Thread.__init__(self)
+
         self.size = size
         self.position = position
         self.cells = []
