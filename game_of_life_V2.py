@@ -9,8 +9,6 @@ sys.path.insert(0,"./wheels")
 from gui2oneUI import *
 
 
-import multiprocessing as mp
-
 class GOL_grid(object):
     def __init__(self, position = [20,20], size=[30,30]):
 
@@ -47,7 +45,9 @@ class GOL_grid(object):
 
     def buildByString(self, _string):
         self.iterations = 0
-        self.isEvolving = True        
+        self.isEvolving = True
+
+        
         counter = 0
         self.startString = _string
         self.cells = []
@@ -108,6 +108,7 @@ class GOL_grid(object):
             numBuddies = self.getNumNeighbours(cell)
 
             self.cells[i].numBuddies = numBuddies
+            
     def getString(self):
         gridString = ''
         for cell in self.cells : gridString += str(cell.state)
@@ -202,18 +203,25 @@ ui.addItem(recordText)
 
 resetBtn = Button(screen, 10,10,60,20, "Reset")
 resetBtn.setFontSize(13)
+
+editWidth = EditText(screen, 350, 30, 100,20,"width",64)
+ui.addItem(editWidth)
+
+editHeight = EditText(screen, 350, 60, 100,20,"height",64)
+ui.addItem(editHeight)
+
 record = 0
 frameCounter = 0
 
-gridSize = 100
+gridSize = 25
 gridPos = [50,100]  
 grid = GOL_grid(gridPos,[gridSize,gridSize])
 
 def buildGrid():
 
     #global grid
-    grid.__init__(gridPos,[gridSize,gridSize])
-    grid.cellSize = 5
+    grid.__init__(gridPos,[int(editWidth.getValue()),int(editHeight.getValue())])
+    grid.cellSize = 6
     grid.build()      
     oldGridString = ''
     grid.isEvolving = True
@@ -255,8 +263,6 @@ buildGrid()
 oldGridString = grid.getString()
 
 
-
-
 clock = pygame.time.Clock()
 done = False
 
@@ -284,10 +290,6 @@ while not done:
         else:            
             oldGridString = newString
 
-    
-
-    
-    
     
     grid.update()   
     
